@@ -1,11 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ArrowUpFromLine,
   BarChart3,
-  Bell,
   ChevronDown,
   LayoutDashboard,
+  LogOut,
   Menu,
   Package,
   RotateCcw,
@@ -13,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,21 +31,39 @@ const NAV_ITEMS = [
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+}
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   function isActive(path: string) {
     if (path === "/") return currentPath === "/";
     return currentPath.startsWith(path);
   }
 
-  // Close sidebar on route change (mobile)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-run on path change
   useEffect(() => {
     setSidebarOpen(false);
   }, [currentPath]);
+
+  function handleLogout() {
+    logout();
+    navigate({ to: "/login" });
+  }
+
+  const initials = currentUser ? getInitials(currentUser.name) : "?";
+  const displayName = currentUser?.name ?? "";
 
   return (
     <div
@@ -62,7 +88,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         >
           {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
-        {/* Desktop hamburger */}
         <button
           type="button"
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -106,20 +131,58 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            className="text-white/70 hover:text-white p-1.5 rounded transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell size={16} />
-          </button>
-          <div className="flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded hover:bg-white/10 transition-colors">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white">
-              A
-            </div>
-            <span className="text-white text-xs hidden sm:block">Admin</span>
-            <ChevronDown size={12} className="text-white/60" />
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                data-ocid="nav.user.button"
+                className="flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded hover:bg-white/10 transition-colors outline-none"
+              >
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{ background: "oklch(0.55 0.17 25)", color: "white" }}
+                >
+                  {initials}
+                </div>
+                <span className="text-white text-xs hidden sm:block">
+                  {displayName}
+                </span>
+                <ChevronDown size={12} className="text-white/60" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-44"
+              style={{
+                background: "oklch(0.22 0.055 247)",
+                border: "1px solid oklch(0.3 0.045 247)",
+              }}
+            >
+              <div className="px-3 py-2">
+                <p className="text-xs font-semibold text-white truncate">
+                  {displayName}
+                </p>
+                <p
+                  className="text-xs truncate"
+                  style={{ color: "oklch(0.6 0.02 250)" }}
+                >
+                  {currentUser?.email}
+                </p>
+              </div>
+              <DropdownMenuSeparator
+                style={{ background: "oklch(0.3 0.04 247)" }}
+              />
+              <DropdownMenuItem
+                data-ocid="nav.logout.button"
+                onClick={handleLogout}
+                className="gap-2 cursor-pointer text-xs focus:bg-white/10"
+                style={{ color: "oklch(0.75 0.02 250)" }}
+              >
+                <LogOut size={13} />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -188,7 +251,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        {/* Main content — on desktop shifts with sidebar, on mobile never shifts */}
         <main
           className={`flex-1 transition-all duration-200 flex flex-col min-h-0 pb-16 md:pb-0 ${
             sidebarOpen ? "md:ml-52" : "ml-0"
@@ -213,7 +275,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   className="text-xs mt-1"
                   style={{ color: "oklch(0.65 0.02 250)" }}
                 >
-                  Equipment tracking & inventory management
+                  Equipment tracking &amp; inventory management
                 </p>
               </div>
               <div className="flex flex-wrap gap-4">

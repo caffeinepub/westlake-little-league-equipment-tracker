@@ -53,16 +53,45 @@ export type RecipientType = { 'coach' : null } |
   { 'team' : null };
 export type Sport = { 'baseball' : null } |
   { 'softball' : null };
+export interface User {
+  'id' : bigint,
+  'name' : string,
+  'email' : string,
+  'passwordHash' : string,
+}
+export interface UserProfile { 'name' : string }
+export type UserRole = { 'admin' : null } |
+  { 'user' : null } |
+  { 'guest' : null };
 export interface _SERVICE {
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addEquipmentItem' : ActorMethod<[EquipmentItem], EquipmentItem>,
+  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createIssuance' : ActorMethod<[Issuance], Issuance>,
   'deleteEquipmentItem' : ActorMethod<[bigint], undefined>,
+  'deleteUser' : ActorMethod<[bigint], undefined>,
   'getActiveIssuances' : ActorMethod<[], Array<Issuance>>,
   'getAllEquipmentItems' : ActorMethod<[[] | [Sport]], Array<EquipmentItem>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getEquipmentItem' : ActorMethod<[bigint], EquipmentItem>,
   'getIssuanceHistoryForItem' : ActorMethod<[bigint], Array<Issuance>>,
   'getIssuancesByRecipient' : ActorMethod<[string], Array<Issuance>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'isCallerAdmin' : ActorMethod<[], boolean>,
+  'listUsers' : ActorMethod<[], Array<User>>,
+  'loginUser' : ActorMethod<
+    [string, string],
+    { 'ok' : User } |
+      { 'err' : string }
+  >,
   'markAsReturned' : ActorMethod<[bigint, EquipmentCondition], Issuance>,
+  'registerUser' : ActorMethod<
+    [string, string, string],
+    { 'ok' : User } |
+      { 'err' : string }
+  >,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'updateEquipmentItem' : ActorMethod<[bigint, EquipmentItem], EquipmentItem>,
 }
 export declare const idlService: IDL.ServiceClass;

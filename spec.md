@@ -1,47 +1,38 @@
 # Westlake Little League Equipment Tracker
 
 ## Current State
-- Full equipment tracking app with Dashboard, Inventory, Issue, Returns, Reports pages
-- Layout.tsx has a "WL" text circle placeholder in the header instead of a real logo
-- manifest.json references a generated PWA icon (pwa-icon.dim_512x512.png)
-- Equipment categories are a fixed enum (helmet, bat, glove, etc.) with display labels in CATEGORY_LABELS in helpers.ts
-- No settings page exists
+- Full equipment tracker with Dashboard, Inventory, Issue Equipment, Returns, Reports, Settings pages
+- Open access -- no authentication, all users have equal access
+- Top-right header shows a static circle "A" button with a non-functional dropdown
+- Layout.tsx has a user button UI but no actual dropdown implementation
+- Backend: equipment tracking only (no user management)
+- Authorization component is now selected
 
 ## Requested Changes (Diff)
 
 ### Add
-- Logo image in the top header (replacing the "WL" circle div) and in the sidebar footer area
-- A Settings page (`/settings`) accessible via a gear icon in the sidebar/nav
-- Settings page has a "Equipment Categories" section to:
-  - Rename any category's display label (editing text inline)
-  - Hide/remove categories from dropdowns (toggle visibility)
-  - Add new custom categories (stored as "other" backend type with custom label)
-- Category customizations persist in localStorage
-- Settings link added to sidebar nav and bottom mobile nav
+- Login page: email + password form, with link to sign up
+- Sign up page: name, email, password fields
+- User authentication using the authorization component (email/password stored via backend)
+- Route guard: redirect unauthenticated users to login page
+- Fix the top-right user button: show logged-in user's name/initials, functional dropdown with "Profile" and "Log out"
+- User management section in Settings page: list registered users, add new user (name, email, password)
 
 ### Modify
-- Layout.tsx header: replace the `<div>WL</div>` circle with `<img src="/assets/uploads/gemini_generated_image_5j6l4b5j6l4b5j6l-019d3531-a5fa-75ff-8e99-4828ec3a6f02-1.png" />` logo, sized ~32px height
-- manifest.json: update `icons` to use the uploaded logo path `/assets/uploads/gemini_generated_image_5j6l4b5j6l4b5j6l-019d3531-a5fa-75ff-8e99-4828ec3a6f02-1.png` for the PWA icon
-- App.tsx: add a settings route `/settings`
-- helpers.ts: export a `getCategoryLabels()` function that reads from localStorage if customizations exist, falling back to CATEGORY_LABELS defaults
-- Inventory.tsx and IssueEquipment.tsx: use `getCategoryLabels()` instead of `CATEGORY_LABELS` directly so renamed/hidden categories are respected
+- App.tsx: add login/signup routes, wrap protected routes with auth check
+- Layout.tsx: fix user button dropdown to show real user info and logout option
+- Settings.tsx: add "Users" tab/section for managing users
+- Backend: add user management (register, login, list users, delete user)
 
 ### Remove
-- The hardcoded `<div className="w-7 h-7 rounded-full ...">WL</div>` in Layout.tsx header
+- Static "Admin" label and non-functional dropdown from header
 
 ## Implementation Plan
-1. Update Layout.tsx:
-   - Replace "WL" circle with the logo image
-   - Add Settings nav item (with Settings/gear icon) to NAV_ITEMS, sidebar, and bottom mobile nav
-2. Update App.tsx: add `/settings` route
-3. Create `src/frontend/src/pages/Settings.tsx`:
-   - Shows list of all default categories with current labels
-   - Inline edit to rename label
-   - Toggle switch to hide/show category
-   - "Add custom category" button (adds a new entry that maps to `EquipmentCategory.other` backend value with custom display name, stored as a custom label key)
-   - All changes saved to localStorage key `wll_category_settings`
-4. Update helpers.ts:
-   - Add `getCategoryLabels()` that merges localStorage customizations with defaults
-   - Add `getVisibleCategories()` that returns only non-hidden categories
-5. Update manifest.json to use the real logo as PWA icon
-6. Update Inventory.tsx and IssueEquipment.tsx to use `getCategoryLabels()` and `getVisibleCategories()`
+1. Update backend (main.mo) to add user registration, login (email+password), and list/delete user functions
+2. Run generate_motoko_code to produce updated backend and bindings
+3. Update frontend:
+   - Add LoginPage and SignUpPage components
+   - Add auth context (currentUser state, login/logout/register functions)
+   - Guard all routes -- redirect to /login if not authenticated
+   - Fix user button dropdown in Layout.tsx (show initials, name, logout option)
+   - Add Users management section in Settings.tsx (list users, add user form)

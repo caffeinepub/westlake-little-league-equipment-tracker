@@ -1,15 +1,20 @@
-import Array "mo:core/Array";
 import Map "mo:core/Map";
-import Iter "mo:core/Iter";
 import Nat "mo:core/Nat";
 import Int "mo:core/Int";
 import Time "mo:core/Time";
-import Runtime "mo:core/Runtime";
-import Order "mo:core/Order";
-import List "mo:core/List";
 import Text "mo:core/Text";
+import Principal "mo:core/Principal";
+import Runtime "mo:core/Runtime";
+import Migration "migration";
+import Order "mo:core/Order";
+import AccessControl "authorization/access-control";
+import MixinAuthorization "authorization/MixinAuthorization";
 
+(with migration = Migration.run)
 actor {
+  let accessControlState = AccessControl.initState();
+  include MixinAuthorization(accessControlState);
+
   public type EquipmentCategory = {
     #helmet;
     #catchersHelmet;
@@ -67,18 +72,52 @@ actor {
     notes : Text;
   };
 
+  public type User = {
+    id : Nat;
+    name : Text;
+    email : Text;
+    passwordHash : Text;
+  };
+
+  public type UserProfile = {
+    name : Text;
+  };
+
+  var nextEquipmentId = 1;
+  var nextIssuanceId = 1;
+  var nextUserId = 1;
+
+  let equipmentItems = Map.empty<Nat, EquipmentItem>();
+  let issuances = Map.empty<Nat, Issuance>();
+  let users = Map.empty<Nat, User>();
+  let userProfiles = Map.empty<Principal, UserProfile>();
+
   module EquipmentItem {
     public func compare(item1 : EquipmentItem, item2 : EquipmentItem) : Order.Order {
       Nat.compare(item1.id, item2.id);
     };
   };
 
-  var nextEquipmentId = 1;
-  var nextIssuanceId = 1;
+  module Issuance {
+    public func compareById(issuance1 : Issuance, issuance2 : Issuance) : Order.Order {
+      Nat.compare(issuance1.id, issuance2.id);
+    };
+  };
 
-  let equipmentItems = Map.empty<Nat, EquipmentItem>();
-  let issuances = Map.empty<Nat, Issuance>();
+  // User Profile stubs (required by authorization mixin)
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    userProfiles.get(caller);
+  };
 
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    userProfiles.add(caller, profile);
+  };
+
+  // Equipment Management - open access (auth handled at frontend via email/password)
   public shared ({ caller }) func addEquipmentItem(item : EquipmentItem) : async EquipmentItem {
     let newItem : EquipmentItem = {
       item with
@@ -202,9 +241,57 @@ actor {
     ).toArray().sort(Issuance.compareById);
   };
 
-  module Issuance {
-    public func compareById(issuance1 : Issuance, issuance2 : Issuance) : Order.Order {
-      Nat.compare(issuance1.id, issuance2.id);
+  // User Management - email/password auth (public, no ICP identity required)
+  public shared ({ caller }) func registerUser(name : Text, email : Text, password : Text) : async {
+    #ok : User;
+    #err : Text;
+  } {
+    if (users.values().any(func(user) { user.email == email })) {
+      return #err("Email already registered");
     };
+    let newUser : User = {
+      id = nextUserId;
+      name;
+      email;
+      passwordHash = password;
+    };
+    users.add(nextUserId, newUser);
+    nextUserId += 1;
+    #ok(newUser);
+  };
+
+  public shared ({ caller }) func loginUser(email : Text, password : Text) : async {
+    #ok : User;
+    #err : Text;
+  } {
+    // Find user by email by scanning all users
+    let allUsers = users.values().toArray();
+    var found : ?User = null;
+    for (user in allUsers.vals()) {
+      if (user.email == email) {
+        found := ?user;
+      };
+    };
+    switch (found) {
+      case (null) { #err("No account found with that email") };
+      case (?user) {
+        if (user.passwordHash == password) {
+          #ok(user);
+        } else {
+          #err("Incorrect password");
+        };
+      };
+    };
+  };
+
+  public query ({ caller }) func listUsers() : async [User] {
+    users.values().toArray();
+  };
+
+  public shared ({ caller }) func deleteUser(id : Nat) : async () {
+    if (not users.containsKey(id)) {
+      Runtime.trap("User not found - could not delete");
+    };
+    users.remove(id);
   };
 };

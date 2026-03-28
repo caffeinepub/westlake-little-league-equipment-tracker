@@ -41,6 +41,11 @@ export const EquipmentItem = IDL.Record({
   'totalQuantity' : IDL.Nat,
   'condition' : EquipmentCondition,
 });
+export const UserRole = IDL.Variant({
+  'admin' : IDL.Null,
+  'user' : IDL.Null,
+  'guest' : IDL.Null,
+});
 export const RecipientType = IDL.Variant({
   'coach' : IDL.Null,
   'team' : IDL.Null,
@@ -59,17 +64,29 @@ export const Issuance = IDL.Record({
   'returnDate' : IDL.Opt(IDL.Int),
   'recipientEmail' : IDL.Text,
 });
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const User = IDL.Record({
+  'id' : IDL.Nat,
+  'name' : IDL.Text,
+  'email' : IDL.Text,
+  'passwordHash' : IDL.Text,
+});
 
 export const idlService = IDL.Service({
+  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addEquipmentItem' : IDL.Func([EquipmentItem], [EquipmentItem], []),
+  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createIssuance' : IDL.Func([Issuance], [Issuance], []),
   'deleteEquipmentItem' : IDL.Func([IDL.Nat], [], []),
+  'deleteUser' : IDL.Func([IDL.Nat], [], []),
   'getActiveIssuances' : IDL.Func([], [IDL.Vec(Issuance)], ['query']),
   'getAllEquipmentItems' : IDL.Func(
       [IDL.Opt(Sport)],
       [IDL.Vec(EquipmentItem)],
       ['query'],
     ),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getEquipmentItem' : IDL.Func([IDL.Nat], [EquipmentItem], ['query']),
   'getIssuanceHistoryForItem' : IDL.Func(
       [IDL.Nat],
@@ -81,7 +98,25 @@ export const idlService = IDL.Service({
       [IDL.Vec(Issuance)],
       ['query'],
     ),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'listUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
+  'loginUser' : IDL.Func(
+      [IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : User, 'err' : IDL.Text })],
+      [],
+    ),
   'markAsReturned' : IDL.Func([IDL.Nat, EquipmentCondition], [Issuance], []),
+  'registerUser' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : User, 'err' : IDL.Text })],
+      [],
+    ),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'updateEquipmentItem' : IDL.Func(
       [IDL.Nat, EquipmentItem],
       [EquipmentItem],
@@ -122,6 +157,11 @@ export const idlFactory = ({ IDL }) => {
     'totalQuantity' : IDL.Nat,
     'condition' : EquipmentCondition,
   });
+  const UserRole = IDL.Variant({
+    'admin' : IDL.Null,
+    'user' : IDL.Null,
+    'guest' : IDL.Null,
+  });
   const RecipientType = IDL.Variant({ 'coach' : IDL.Null, 'team' : IDL.Null });
   const Issuance = IDL.Record({
     'id' : IDL.Nat,
@@ -137,17 +177,29 @@ export const idlFactory = ({ IDL }) => {
     'returnDate' : IDL.Opt(IDL.Int),
     'recipientEmail' : IDL.Text,
   });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const User = IDL.Record({
+    'id' : IDL.Nat,
+    'name' : IDL.Text,
+    'email' : IDL.Text,
+    'passwordHash' : IDL.Text,
+  });
   
   return IDL.Service({
+    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addEquipmentItem' : IDL.Func([EquipmentItem], [EquipmentItem], []),
+    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createIssuance' : IDL.Func([Issuance], [Issuance], []),
     'deleteEquipmentItem' : IDL.Func([IDL.Nat], [], []),
+    'deleteUser' : IDL.Func([IDL.Nat], [], []),
     'getActiveIssuances' : IDL.Func([], [IDL.Vec(Issuance)], ['query']),
     'getAllEquipmentItems' : IDL.Func(
         [IDL.Opt(Sport)],
         [IDL.Vec(EquipmentItem)],
         ['query'],
       ),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getEquipmentItem' : IDL.Func([IDL.Nat], [EquipmentItem], ['query']),
     'getIssuanceHistoryForItem' : IDL.Func(
         [IDL.Nat],
@@ -159,7 +211,25 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(Issuance)],
         ['query'],
       ),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'listUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
+    'loginUser' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : User, 'err' : IDL.Text })],
+        [],
+      ),
     'markAsReturned' : IDL.Func([IDL.Nat, EquipmentCondition], [Issuance], []),
+    'registerUser' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : User, 'err' : IDL.Text })],
+        [],
+      ),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'updateEquipmentItem' : IDL.Func(
         [IDL.Nat, EquipmentItem],
         [EquipmentItem],
