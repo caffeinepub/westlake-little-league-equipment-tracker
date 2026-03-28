@@ -1,0 +1,18 @@
+{
+  "name": "Westlake Little League Equipment Tracker",
+  "short_name": "WLL Equipment",
+  "description": "Track baseball and softball equipment for Westlake Little League",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a2a3a",
+  "theme_color": "#c2410c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/uploads/gemini_generated_image_5j6l4b5j6l4b5j6l-019d3531-a5fa-75ff-8e99-4828ec3a6f02-1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
